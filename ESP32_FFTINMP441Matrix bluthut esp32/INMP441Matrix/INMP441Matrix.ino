@@ -75,9 +75,6 @@ uint8_t prevFFTValue[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 uint8_t barHeights[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 // Colors and palettes
-#define TriBar_Color_Top      0 , 255, 255    // Red CHSV
-#define TriBar_Color_Bottom   95 , 255, 255   // Green CHSV
-#define TriBar_Color_Middle   45, 255, 255    // Yellow CHSV
 
 
 DEFINE_GRADIENT_PALETTE( purple_gp ) {
@@ -120,9 +117,9 @@ void setup() {
     barWidth = M_WIDTH / numBands;
 
     preferences.begin(ESP_PREFS, false); //The false argument means that we’ll use it in read/write mode
-    brightness = preferences.getUInt(PREFS_BRIGHTNESS, 2);
-    gain = preferences.getUInt(PREFS_GAIN, 30);
-    squelch = preferences.getUInt(PREFS_SQUELCH, 0);
+    brightness = preferences.getUInt(PREFS_BRIGHTNESS, 10);
+    gain = preferences.getUInt(PREFS_GAIN, 15);
+    squelch = preferences.getUInt(PREFS_SQUELCH, 10);
     pattern = preferences.getUInt(PREFS_PATTERN, 0);
     displayTime = preferences.getUInt(PREFS_DISPLAY_TIME, 1);
     preferences.end();
@@ -133,7 +130,7 @@ void loop() {
     readBlueTooth();
 
     if (!isDeepSlepp) {
-        if (pattern != 6) FastLED.clear();
+        if (pattern != 10) FastLED.clear();
 
         uint8_t divisor = 1;                                                    // If 8 bands, we need to divide things by 2
         if (numBands == 8) divisor = 2;                                         // and average each pair of bands together
@@ -160,14 +157,14 @@ void loop() {
         }
 
         // Decay peak
-        EVERY_N_MILLISECONDS(60) {
+        EVERY_N_MILLISECONDS(80) {
             for (uint8_t band = 0; band < numBands; band++)
                 if (peak[band] > 0) peak[band] -= 1;
         }
 
         EVERY_N_SECONDS_I(timingObj, displayTime) {
             timingObj.setPeriod(displayTime);
-            if (autoChangePatterns) pattern = (pattern + 1) % 6;
+            if (autoChangePatterns) pattern = (pattern + 1) % 10;
         }
 
         FastLED.setBrightness(brightness);
@@ -205,46 +202,58 @@ void drawPatterns(uint8_t band) {
   
   // Draw bars
   switch (pattern) {
-
    case 0:
+      rainbowBars2(band, barHeight);
+      break;
+   case 1:
       rainbowBars1(band, barHeight);
       break;
    
-    case 1:
+    case 2:
       rainbowBars(band, barHeight);
       break;
-    case 2:
+    case 3:
       // No bars on this one
       break;
-    case 3:
+    case 4:
       purpleBars(band, barHeight);
       break;
-    case 4:
+    case 5:
       centerBars(band, barHeight);
       break;
-    case 5:
+    case 6:
       changingBars(band, barHeight);
       EVERY_N_MILLISECONDS(10) { colorTimer++; }
       break;
-    case 6:
-      createWaterfall(band);
-      EVERY_N_MILLISECONDS(30) { moveWaterfall(); }
+   
+   case 7:
+      changingBars1(band, barHeight);
+      EVERY_N_MILLISECONDS(3) { colorTimer++; }
       break;
+
+        case 8:
+      // No bars on this one
+         break;
+
+
+         case 9:
+          rainbowBars3(band, barHeight); // No bars on this one
+         break;
   }
 
   // Draw peaks
   switch (pattern) {
     case 0:
-      whitePeak(band);
+      whitePeak2(band);
       break;
     case 1:
-       whitePeak1(band);// No peaksoutrunPeak(band);
+       whitePeak(band);// No peaksoutrunPeak(band);
       break;
     case 2:
-      outrunPeak(band);
+      whitePeak1(band);
       break;
     case 3:
-      // No peaks
+     outrunPeak(band); // No peaks
       break;
     case 4:
       // No peaks
@@ -252,6 +261,25 @@ void drawPatterns(uint8_t band) {
     case 5:
       // No peaks
       break;
+
+     case 6:
+      // No peaks
+      break;
+
+     case 7:
+       whitePeak(band);// No peaks
+      break;
+
+       case 8:
+     outrunPeak1(band); // No peaks
+      break;
+
+        case 9:
+      outrunPeak1(band); // No peaks
+      break;
+
+
+    
   }
 }
 
@@ -276,6 +304,24 @@ void rainbowBars1(uint8_t band, uint8_t barHeight) {
     }
   }
 }
+void rainbowBars2(uint8_t band, uint8_t barHeight) {
+  int xStart = barWidth * band;
+  for (int x = xStart; x < xStart + barWidth; x++) {
+    for (int y = 0; y <= barHeight; y++) {
+      leds(x,y) = CRGB(255,0,0);
+    }
+  }
+}
+
+void rainbowBars3(uint8_t band, uint8_t barHeight) {
+  int xStart = barWidth * band;
+  for (int x = xStart; x < xStart + barWidth; x++) {
+    for (int y = 0; y <= barHeight; y++) {
+      leds(x,y) = CRGB(0,255,0);
+    }
+  }
+}
+
 
 void purpleBars(int band, int barHeight) {
   int xStart = barWidth * band;
@@ -286,21 +332,7 @@ void purpleBars(int band, int barHeight) {
   }
 }
 
-/*//************ Mode 1 ***********
- void TriBarLS(int band, int barHeight) {
-  int xStart = barWidth * band;
-  for (int x = xStart; x < xStart + barWidth; x++) {
-    for (int y = 0; y >= 0; y--) {
-     if(y >= 0 - barHeight){
-        if (y < (M_HEIGHT/3)) matrix -> drawPixel(x, y, CHSV(TriBar_Color_Top));     //Top red
-      else if (y > (1 *kMatrixHeight/2)) matrix -> drawPixel(x, y, CHSV(TriBar_Color_Bottom)); //green
-      else matrix -> drawPixel(x, y, CHSV(TriBar_Color_Middle));      //yellow
-     }
-     
-    } 
-  }
-}
-*/
+
 void changingBars(int band, int barHeight) {
   int xStart = barWidth * band;
   for (int x = xStart; x < xStart + barWidth; x++) {
@@ -309,6 +341,17 @@ void changingBars(int band, int barHeight) {
     }
   }
 }
+
+void changingBars1(int band, int barHeight) {
+  int xStart = barWidth * band;
+  for (int x = xStart; x < xStart + barWidth; x++) {
+    for (int y = 0; y < barHeight; y++) {
+      leds(x,y) = CHSV(y * (255 / M_WIDTH) + colorTimer, 255, 255); 
+    }
+  }
+}
+
+
 
 void centerBars(int band, int barHeight) {
   int xStart = barWidth * band;
@@ -339,6 +382,14 @@ void whitePeak1(int band) {
   }
 }
 
+void whitePeak2(int band) {
+  int xStart = barWidth * band;
+  int peakHeight = peak[band];
+  for (int x = xStart; x < xStart + barWidth; x++) {
+    leds(x,peakHeight) = CRGB::Blue;
+  }
+}
+
 void outrunPeak(int band) {
   int xStart = barWidth * band;
   int peakHeight = peak[band];
@@ -347,12 +398,22 @@ void outrunPeak(int band) {
   }
 }
 
-void createWaterfall(int band) {
+void outrunPeak1(int band) {
   int xStart = barWidth * band;
-  // Draw bottom line
+  int peakHeight = peak[band];
   for (int x = xStart; x < xStart + barWidth; x++) {
-    leds(x,0) = CHSV(constrain(map(fftResult[band],0,254,160,0),0,160), 255, 255);
+    leds(x,peakHeight) = CHSV(x * (255 / M_WIDTH) + colorTimer, 255, 255);
   }
+}
+
+
+
+void createWaterfall(int band) {
+    int xStart = barWidth * band;
+    // Draw bottom line
+    for (int x = xStart; x < xStart + barWidth; x++) {
+        leds(x, 0) = CHSV(constrain(map(fftResult[band], 0, 254, 160, 0), 0, 160), 255, 255);
+    }
 }
 
 void moveWaterfall() {
@@ -415,7 +476,7 @@ void readBlueTooth() {
         BT_BUTTON = BT_BUTTON + byteArray[0] + byteArray[1] + byteArray[2];
         BT_BUTTON.trim();
         if (BT_BUTTON.equals(BT_SPECTRUM_NEXT_PATTERN)) {
-            pattern = (pattern + 1) % 6;
+            pattern = (pattern + 1) % 10;
             autoChangePatterns = false;
             displayTime = 1;
             saveSpectrumPrefs();
@@ -453,9 +514,9 @@ void readBlueTooth() {
             }
         }
         else if (BT_BUTTON.equals(BT_SPECTRUM_RESET)) {
-            brightness = 2;
+            brightness = 20;
             gain = 30;
-            squelch = 0;
+            squelch = 10;
             pattern = 0;
             displayTime = 1;
             autoChangePatterns = false;
