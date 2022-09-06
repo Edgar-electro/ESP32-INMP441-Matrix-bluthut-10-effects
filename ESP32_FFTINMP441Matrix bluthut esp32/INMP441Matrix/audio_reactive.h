@@ -18,11 +18,11 @@
 const i2s_port_t I2S_PORT = I2S_NUM_0;
 const int BLOCK_SIZE = 64;
 
-const int SAMPLE_RATE = 12800;   //15000   10240
+const int SAMPLE_RATE = 30000;   //36000 15000   10240
 
 TaskHandle_t FFT_Task;
 
-int squelch = 0;                           // Squelch, cuts out low level sounds
+int squelch = 30;                           // Squelch, cuts out low level sounds
 int gain = 30;                             // Gain, boosts input level*/
 uint16_t micData;                               // Analog input for FFT
 uint16_t micDataSm;                             // Smoothed mic data, as it's a bit twitchy
@@ -47,13 +47,16 @@ int fftResult[16];                      // Our calculated result table, which we
 double fftResultMax[16];                // A table used for testing to determine how our post-processing is working.
 
 // Table of linearNoise results to be multiplied by squelch in order to reduce squelch across fftResult bins.
-int linearNoise[16] = { 34, 28, 26, 25, 20, 12, 9, 6, 4, 4, 3, 2, 2, 2, 2, 2 };
+int linearNoise[16] = { 35, 31, 28, 25, 23, 20, 15, 10, 8, 5, 5, 4, 3, 3, 1, 1 };
+//                    { 34, 28, 26, 25, 20, 12, 9, 6, 4, 4, 3, 2, 2, 2, 2, 2 };
+
 
 // Table of multiplication factors so that we can even out the frequency response.
-double fftResultPink[16] = {1,1.01,1.05,1.08,1.10,1.15,1.22,1.75,1.85,1.90,2.80,4.20,5.47,6.20 ,7.50,9.98};
+double fftResultPink[16] = {1.00,1.60,1.05,1.08,1.10,1.15,1.55,1.60,1.85,1.90,1.82,3.20,5.80,5.10 ,7.05,9.50}; 
+                         //{1.70,1.71,1.73,1.78,1.68,1.56,1.55,1.63,1.79,1.62,1.80,2.06,2.47,3.35,6.83,9.55};
 
 
-// Create FFT object  {1.70,1.71,1.73,1.78,1.68,1.56,1.55,1.63,1.79,1.62,1.80,2.06,2.47,3.35,6.83,9.55};
+// Create FFT object  
 arduinoFFT FFT = arduinoFFT( vReal, vImag, samples, SAMPLE_RATE );
 
 double fftAdd( int from, int to) {
@@ -114,23 +117,23 @@ void FFTcode( void * parameter) {
      * Multiplier = 1.320367784
      */
 
-                                        // 12800    sample  6400hz
+         // 30000    sample  12000hz
     fftCalc[0] = (fftAdd(3,4)) /2;        // 60 - 100
-    fftCalc[1] = (fftAdd(4,5)) /2;        // 80 - 120
-    fftCalc[2] = (fftAdd(5,6)) /2;        // 100 - 160
-    fftCalc[3] = (fftAdd(6,8)) /3;        // 140 - 200
-    fftCalc[4] = (fftAdd(8,10)) /3;       // 180 - 260
-    fftCalc[5] = (fftAdd(10,13)) /4;      // 240 - 340
-    fftCalc[6] = (fftAdd(13,18)) /5;      // 320 - 440
-    fftCalc[7] = (fftAdd(18,24)) /7;      // 420 - 600
-    fftCalc[8] = (fftAdd(24,32)) /9;     // 580 - 760
-    fftCalc[9] = (fftAdd(32,42)) /12;     // 740 - 980
-    fftCalc[10] = (fftAdd(42,57)) /16;    // 960 - 1300
-    fftCalc[11] = (fftAdd(57,77)) /21;    // 1280 - 1700
-    fftCalc[12] = (fftAdd(77,104)) /28;   // 1680 - 2240
-    fftCalc[13] = (fftAdd(104,141)) /38;  // 2220 - 2960
-    fftCalc[14] = (fftAdd(141,190)) /50;  // 2940 - 3900
-    fftCalc[15] = (fftAdd(190, 255)) /66; // 3880 - 5120 
+    fftCalc[1] = (fftAdd(4,4)) /2;        // 80 - 120
+    fftCalc[2] = (fftAdd(4,6)) /3;        // 100 - 160
+    fftCalc[3] = (fftAdd(6,7)) /2;        // 140 - 200
+    fftCalc[4] = (fftAdd(7,9)) /3;       // 180 - 260
+    fftCalc[5] = (fftAdd(9,12)) /4;      // 240 - 340
+    fftCalc[6] = (fftAdd(12,17)) /6;      // 320 - 440
+    fftCalc[7] = (fftAdd(17,22)) /6;      // 420 - 600
+    fftCalc[8] = (fftAdd(22,30)) /9;     // 580 - 760
+    fftCalc[9] = (fftAdd(30,40)) /11;     // 740 - 980
+    fftCalc[10] = (fftAdd(40,55)) /16;    // 960 - 1300
+    fftCalc[11] = (fftAdd(55,74)) /20;    // 1280 - 1700
+    fftCalc[12] = (fftAdd(74,101)) /28;   // 1680 - 2240
+    fftCalc[13] = (fftAdd(101,138)) /38;  // 2220 - 2960
+    fftCalc[14] = (fftAdd(138,188)) /51;  // 2940 - 3900
+    fftCalc[15] = (fftAdd(188, 255)) /68; // 3880 - 5120 
 
 
     /*                                           // Range  10240
